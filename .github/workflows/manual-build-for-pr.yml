@@ -39,9 +39,10 @@ jobs:
       run: dotnet restore --locked-mode
 
     # 第四步：发布项目
-    # 使用 'dotnet publish' 可以将所有输出文件干净地聚合到一个文件夹中
+    # 明确指定要发布的项目文件 (.csproj)，以确保 --output 选项生效
     - name: Publish Project
-      run: dotnet publish --configuration Release --no-restore --output ./publish
+      # 注意: 请将 'HsMod/HsMod.csproj' 替换为您项目中主项目的实际路径
+      run: dotnet publish ./HsMod/HsMod.csproj --configuration Release --no-restore --output ./publish
 
     # 第五步: 上传构建产物
     # 从 'publish' 文件夹中获取所有生成的文件
