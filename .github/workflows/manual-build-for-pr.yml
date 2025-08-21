@@ -38,30 +38,18 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore --locked-mode
 
-    # 新增调试步骤: 列出所有文件，以确认 .csproj 文件的确切路径
-    - name: List files for debugging
-      run: ls -R
-      shell: bash # 在 Windows runner 上使用 bash shell 来运行 ls 命令
-
-    # 第四步：发布项目
-    # 明确指定要发布的项目文件 (.csproj)，以确保 --output 选项生效
-    - name: Publish Project
-      # 注意: 请将 'HsMod/HsMod.csproj' 替换为您项目中主项目的实际路径
-      run: dotnet publish ./HsMod/HsMod.csproj --configuration Release --no-restore --output ./publish
-
-    # 新增调试步骤: 检查 'publish' 文件夹是否已创建及其内容
-    - name: Check publish directory content
-      run: ls -R ./publish
-      shell: bash
-      # 'if: always()' 确保无论上一步是否成功，此步骤都会运行，以便我们查看日志
-      if: always()
+    # 第四步：构建项目
+    # 我们使用 'dotnet build'，它会将产物生成在默认的输出目录中
+    - name: Build Project
+      run: dotnet build ./HsMod/HsMod.csproj --configuration Release --no-restore
 
     # 第五步: 上传构建产物
-    # 从 'publish' 文件夹中获取所有生成的文件
+    # 直接从项目的标准输出目录中获取文件
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         # 产物名称中包含 PR 编号，方便识别和追溯
         name: HsMod-Release-PR-${{ github.event.inputs.pull_request_number }}
-        # 上传在上面 'Publish Project' 步骤中创建的 'publish' 文件夹的全部内容
-        path: ./publish
+        # .NET 项目的默认输出路径是 '项目文件夹/bin/配置名'
+        # 这里我们上传 Release 目录下的所有内容
+        path: ./HsMod/bin/Release
