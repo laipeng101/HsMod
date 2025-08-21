@@ -39,17 +39,16 @@ jobs:
       run: dotnet restore --locked-mode
 
     # 第四步：构建项目
-    # 我们使用 'dotnet build'，它会将产物生成在默认的输出目录中
+    # 我们使用 'dotnet build'，它会将产物生成在由 .csproj 文件定义的输出目录中
     - name: Build Project
       run: dotnet build ./HsMod/HsMod.csproj --configuration Release --no-restore
 
     # 第五步: 上传构建产物
-    # 直接从项目的标准输出目录中获取文件
+    # 直接从项目的实际输出目录中获取文件
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         # 产物名称中包含 PR 编号，方便识别和追溯
         name: HsMod-Release-PR-${{ github.event.inputs.pull_request_number }}
-        # .NET 项目的默认输出路径是 '项目文件夹/bin/配置名'
-        # 这里我们上传 Release 目录下的所有内容
-        path: ./HsMod/bin/Release
+        # 根据编译日志，产物的实际路径是 'HsMod/Release'，而不是 'HsMod/bin/Release'
+        path: ./HsMod/Release
