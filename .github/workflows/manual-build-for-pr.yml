@@ -1,0 +1,55 @@
+# .github/workflows/manual-build-for-pr.yml
+
+name: Manual Build for PR
+
+# 允许通过 GitHub UI 手动触发此工作流
+on:
+  workflow_dispatch:
+    # 定义输入参数
+    inputs:
+      pull_request_number:
+        description: 'The number of the PR to build for testing (需要构建的 PR 编号)'
+        required: true
+
+jobs:
+  build:
+    # 在最新的 Windows 虚拟环境上运行
+    runs-on: windows-latest
+
+    steps:
+    # 第一步：检出指定 PR 的代码
+    - name: Checkout PR repository
+      uses: actions/checkout@v4
+      with:
+        # 'ref' 指令会从特殊引用中拉取 PR 的代码
+        # /merge 会检出 PR 合并到目标分支后的代码状态，能提前发现合并冲突
+        ref: 'refs/pull/${{ github.event.inputs.pull_request_number }}/merge'
+        # fetch-depth: 0 会获取所有的 Git 历史记录，对于需要版本信息的构建很重要
+        fetch-depth: 0
+
+    # 第二步：设置 .NET 环境
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        # 指定您项目所需的 .NET 版本
+        dotnet-version: 8.x
+
+    # 第三步：恢复项目的依赖项
+    - name: Restore dependencies
+      run: dotnet restore --locked-mode
+
+    # 第四步：编译项目
+    - name: Build Project
+      run: dotnet build --configuration Release --no-restore
+
+    # 第五步: 上传构建产物
+    # 这样您就可以在工作流运行结束后下载编译好的文件
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        # 产物名称中包含 PR 编号，方便识别和追溯
+        name: HsMod-Release-PR-${{ github.event.inputs.pull_request_number }}
+        # 注意: 这里假设您的构建输出在 'HsMod/bin/Release' 目录下。
+        # .NET 项目的默认输出路径通常是 '项目名/bin/配置名/框架名'。
+        # 如果您的项目输出路径不同，请修改此处的 path。
+        path: ./HsMod/bin/Release
