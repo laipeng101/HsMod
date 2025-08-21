@@ -1193,9 +1193,9 @@ namespace HsMod
                     list.Insert(num++, new CodeInstruction(OpCodes.Call, new Func<ConfigValue>(ConfigValue.Get).Method));
                     list.Insert(num++, new CodeInstruction(OpCodes.Callvirt, typeof(ConfigValue).GetProperty("IsMoveEnemyCardsEnableValue", BindingFlags.Instance | BindingFlags.Public).GetGetMethod()));
                     list.Insert(num++, new CodeInstruction(OpCodes.Brfalse_S, label));
-                    list.Insert(num++, new CodeInstruction(OpCodes.Call, typeof(GameMgr).GetMethod("Get", BindingFlags.Static | BindingFlags.Public)));
-                    list.Insert(num++, new CodeInstruction(OpCodes.Callvirt, typeof(GameMgr).GetMethod("IsSpectator", BindingFlags.Instance | BindingFlags.Public)));
-                    list.Insert(num++, new CodeInstruction(OpCodes.Brfalse_S, label));
+                    list.Insert(num++, new CodeInstruction(OpCodes.Call, typeof(PluginConfig).GetProperty("isCardRevealedEnable", BindingFlags.Static | BindingFlags.Public).GetGetMethod()));
+                    list.Insert(num++, new CodeInstruction(OpCodes.Callvirt, typeof(BepInEx.Configuration.ConfigEntry<bool>).GetProperty("Value", BindingFlags.Instance | BindingFlags.Public).GetGetMethod()));
+                    list.Insert(num++, new CodeInstruction(OpCodes.Brtrue_S, label));
                     list.Insert(num++, new CodeInstruction(OpCodes.Ldarg_0));
                     list.Insert(num++, new CodeInstruction(OpCodes.Ldfld, typeof(ZoneHand).GetField("m_controller", BindingFlags.Instance | BindingFlags.NonPublic)));
                     list.Insert(num++, new CodeInstruction(OpCodes.Callvirt, typeof(Player).GetMethod("IsRevealed", BindingFlags.Instance | BindingFlags.Public)));
@@ -1234,9 +1234,9 @@ namespace HsMod
                     list.Insert(num++, new CodeInstruction(OpCodes.Call, new Func<ConfigValue>(ConfigValue.Get).Method));
                     list.Insert(num++, new CodeInstruction(OpCodes.Callvirt, typeof(ConfigValue).GetProperty("IsMoveEnemyCardsEnableValue", BindingFlags.Instance | BindingFlags.Public).GetGetMethod()));
                     list.Insert(num++, new CodeInstruction(OpCodes.Brfalse_S, label));
-                    list.Insert(num++, new CodeInstruction(OpCodes.Call, typeof(GameMgr).GetMethod("Get", BindingFlags.Static | BindingFlags.Public)));
-                    list.Insert(num++, new CodeInstruction(OpCodes.Callvirt, typeof(GameMgr).GetMethod("IsSpectator", BindingFlags.Instance | BindingFlags.Public)));
-                    list.Insert(num++, new CodeInstruction(OpCodes.Brfalse_S, label));
+                    list.Insert(num++, new CodeInstruction(OpCodes.Call, typeof(PluginConfig).GetProperty("isCardRevealedEnable", BindingFlags.Static | BindingFlags.Public).GetGetMethod()));
+                    list.Insert(num++, new CodeInstruction(OpCodes.Callvirt, typeof(BepInEx.Configuration.ConfigEntry<bool>).GetProperty("Value", BindingFlags.Instance | BindingFlags.Public).GetGetMethod()));
+                    list.Insert(num++, new CodeInstruction(OpCodes.Brtrue_S, label));
                     list.Insert(num++, new CodeInstruction(OpCodes.Ldloc_0));
                     list.Insert(num++, new CodeInstruction(OpCodes.Ldarg_1));
                     list.Insert(num++, new CodeInstruction(OpCodes.Conv_R4));
@@ -1270,9 +1270,9 @@ namespace HsMod
                     newInstructions.Insert(index++, new CodeInstruction(OpCodes.Call, new Func<ConfigValue>(ConfigValue.Get).Method));
                     newInstructions.Insert(index++, new CodeInstruction(OpCodes.Callvirt, typeof(ConfigValue).GetProperty("IsMoveEnemyCardsEnableValue", BindingFlags.Instance | BindingFlags.Public).GetGetMethod()));
                     newInstructions.Insert(index++, new CodeInstruction(OpCodes.Brfalse_S, l2));
-                    newInstructions.Insert(index++, new CodeInstruction(OpCodes.Call, typeof(GameMgr).GetMethod("Get", BindingFlags.Static | BindingFlags.Public)));
-                    newInstructions.Insert(index++, new CodeInstruction(OpCodes.Callvirt, typeof(GameMgr).GetMethod("IsSpectator", BindingFlags.Instance | BindingFlags.Public)));
-                    newInstructions.Insert(index++, new CodeInstruction(OpCodes.Brfalse_S, l2));
+                    newInstructions.Insert(index++, new CodeInstruction(OpCodes.Call, typeof(PluginConfig).GetProperty("isCardRevealedEnable", BindingFlags.Static | BindingFlags.Public).GetGetMethod()));
+                    newInstructions.Insert(index++, new CodeInstruction(OpCodes.Callvirt, typeof(BepInEx.Configuration.ConfigEntry<bool>).GetProperty("Value", BindingFlags.Instance | BindingFlags.Public).GetGetMethod()));
+                    newInstructions.Insert(index++, new CodeInstruction(OpCodes.Brtrue_S, l2));
                     newInstructions.Insert(index++, new CodeInstruction(OpCodes.Ldarg_0));
                     newInstructions.Insert(index++, new CodeInstruction(OpCodes.Ldflda, typeof(ZoneHand).GetField("m_centerOfHand", BindingFlags.NonPublic | BindingFlags.Instance)));
                     newInstructions.Insert(index++, new CodeInstruction(OpCodes.Ldfld, typeof(Vector3).GetField("z", BindingFlags.Public | BindingFlags.Instance)));
