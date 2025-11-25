@@ -2,52 +2,63 @@
 
 name: Manual Build
 
-# 允许手动触发此工作流
 on:
   workflow_dispatch:
-    # (可选) 您可以定义输入参数，如果不需要可以留空
-    # inputs:
-    #   logLevel:
-    #     description: 'Log level'
-    #     required: true
-    #     default: 'warning'
+    inputs:
+      configuration:
+        description: '构建配置'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+
+# 防止并发运行，取消之前的运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '8.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_NOLOGO: true
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 jobs:
   build:
-    # 在最新的 Windows 虚拟环境上运行
     runs-on: windows-latest
+    timeout-minutes: 15
 
     steps:
-    # 第一步：检出您的代码库
-    # 'uses' 关键字表示使用一个预先构建好的 action
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        # fetch-depth: 0 会获取所有的历史记录，这对于某些需要版本信息的场景很重要
         fetch-depth: 0
 
-    # 第二步：设置 .NET 环境
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.NUGET_PACKAGES }}
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
+        restore-keys: |
+          nuget-${{ runner.os }}-
+
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       with:
-        # 指定您项目所需的 .NET 版本
-        dotnet-version: 8.x
+        dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    # 第三步：恢复项目的依赖项
-    # --locked-mode 确保使用 lock file 中指定的精确依赖版本，增强构建的稳定性
     - name: Restore dependencies
       run: dotnet restore --locked-mode
 
-    # 第四步：编译项目
-    # --configuration Release 指定编译为发布版本
-    # --no-restore 表示在编译前不自动执行恢复操作（因为上一步已经做过了）
     - name: Build HsMod
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration ${{ inputs.configuration || 'Release' }} --no-restore
 
-    # 第五步 (可选): 上传构建产物
-    # 这样您就可以在工作流运行结束后下载编译好的 .dll 文件
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: HsMod-dll
+        name: HsMod-dll-${{ inputs.configuration || 'Release' }}
         path: ./HsMod/Release/HsMod.dll
+        retention-days: 30
+        if-no-files-found: error
