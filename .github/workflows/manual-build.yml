@@ -19,7 +19,7 @@ on:
         default: false
         type: boolean
       release_tag:
-        description: 'Release 标签 (例如: v1.0.0)'
+        description: 'Release 标签 (留空则自动使用日期时间)'
         required: false
         type: string
 
@@ -54,7 +54,8 @@ jobs:
         if ("${{ inputs.release_tag }}" -ne "") {
           $version = "${{ inputs.release_tag }}"
         } else {
-          $version = "v$(Get-Date -Format 'yyyy.MM.dd')-${{ github.run_number }}"
+          # 使用 UTC+8 北京时间，格式: 20251125-143052
+          $version = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), [System.TimeZoneInfo]::FindSystemTimeZoneById('China Standard Time')).ToString('yyyyMMdd-HHmmss')
         }
         echo "version=$version" >> $env:GITHUB_OUTPUT
         echo "Version: $version"
