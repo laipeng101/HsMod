@@ -22,6 +22,11 @@ on:
         description: 'Release 标签 (留空则自动使用日期时间)'
         required: false
         type: string
+      prerelease:
+        description: '标记为预发布版本'
+        required: false
+        default: false
+        type: boolean
 
 # 防止并发运行，取消之前的运行
 concurrency:
@@ -32,6 +37,7 @@ env:
   DOTNET_VERSION: '8.x'
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 jobs:
@@ -40,6 +46,7 @@ jobs:
     timeout-minutes: 15
     outputs:
       version: ${{ steps.version.outputs.version }}
+      artifact_name: ${{ steps.vars.outputs.artifact_name }}
 
     steps:
     - name: Checkout repository
@@ -47,18 +54,25 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Get version
-      id: version
-      shell: pwsh
+    - name: Set variables
+      id: vars
+      shell: bash
       run: |
-        if ("${{ inputs.release_tag }}" -ne "") {
-          $version = "${{ inputs.release_tag }}"
-        } else {
-          # 使用 UTC+8 北京时间，格式: 20251125-143052
-          $version = [System.TimeZoneInfo]::ConvertTimeFromUtc((Get-Date).ToUniversalTime(), [System.TimeZoneInfo]::FindSystemTimeZoneById('China Standard Time')).ToString('yyyyMMdd-HHmmss')
-        }
-        echo "version=$version" >> $env:GITHUB_OUTPUT
-        echo "Version: $version"
+        # 版本号
+        if [ -n "${{ inputs.release_tag }}" ]; then
+          version="${{ inputs.release_tag }}"
+        else
+          version=$(TZ='Asia/Shanghai' date '+%Y%m%d-%H%M%S')
+        fi
+        echo "version=$version" >> $GITHUB_OUTPUT
+        
+        # Artifact 名称
+        config="${{ inputs.configuration || 'Release' }}"
+        echo "artifact_name=HsMod-${config}-${version}" >> $GITHUB_OUTPUT
+        
+        # 输出信息
+        echo "::notice::Version: $version"
+        echo "::notice::Configuration: $config"
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -77,15 +91,17 @@ jobs:
       run: dotnet restore --locked-mode
 
     - name: Build HsMod
-      run: dotnet build --configuration ${{ inputs.configuration || 'Release' }} --no-restore
+      run: |
+        dotnet build --configuration ${{ inputs.configuration || 'Release' }} --no-restore /p:Version=${{ steps.vars.outputs.version }}
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: HsMod-dll-${{ inputs.configuration || 'Release' }}
+        name: ${{ steps.vars.outputs.artifact_name }}
         path: ./HsMod/Release/HsMod.dll
         retention-days: 30
         if-no-files-found: error
+        compression-level: 9
 
   release:
     needs: build
@@ -95,11 +111,28 @@ jobs:
       contents: write
 
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        sparse-checkout: |
+          CHANGELOG.md
+          README.md
+        sparse-checkout-cone-mode: false
+
     - name: Download Artifact
       uses: actions/download-artifact@v4
       with:
-        name: HsMod-dll-${{ inputs.configuration || 'Release' }}
+        name: ${{ needs.build.outputs.artifact_name }}
         path: ./artifacts
+
+    - name: Prepare release files
+      run: |
+        cd artifacts
+        # 计算校验和
+        sha256sum HsMod.dll > SHA256SUMS.txt
+        echo "SHA256 Checksum:"
+        cat SHA256SUMS.txt
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
@@ -109,14 +142,26 @@ jobs:
         body: |
           ## HsMod ${{ needs.build.outputs.version }}
           
-          ### 构建信息
-          - 构建配置: ${{ inputs.configuration || 'Release' }}
-          - 构建时间: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
-          - 提交: ${{ github.sha }}
+          ### 📦 构建信息
+          | 项目 | 值 |
+          |------|-----|
+          | 构建配置 | `${{ inputs.configuration || 'Release' }}` |
+          | .NET 版本 | `${{ env.DOTNET_VERSION }}` |
+          | 提交 | [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |
+          | 构建时间 | ${{ needs.build.outputs.version }} |
+          | 触发者 | @${{ github.actor }} |
           
-          ### 下载
-          下载下方的 `HsMod.dll` 文件即可使用。
-        files: ./artifacts/HsMod.dll
+          ### 📥 下载
+          下载 `HsMod.dll` 文件，校验和见 `SHA256SUMS.txt`。
+          
+          ### ⚠️ 注意事项
+          - 请确保游戏版本与 Mod 版本兼容
+          - 建议备份原文件后再替换
+        files: |
+          ./artifacts/HsMod.dll
+          ./artifacts/SHA256SUMS.txt
         draft: false
-        prerelease: false
+        prerelease: ${{ inputs.prerelease }}
         generate_release_notes: true
+        fail_on_unmatched_files: true
+        make_latest: ${{ inputs.prerelease == false }}
