@@ -13,6 +13,15 @@ on:
         options:
           - Release
           - Debug
+      create_release:
+        description: '是否创建 Release'
+        required: true
+        default: false
+        type: boolean
+      release_tag:
+        description: 'Release 标签 (例如: v1.0.0)'
+        required: false
+        type: string
 
 # 防止并发运行，取消之前的运行
 concurrency:
@@ -29,12 +38,26 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
+    - name: Get version
+      id: version
+      shell: pwsh
+      run: |
+        if ("${{ inputs.release_tag }}" -ne "") {
+          $version = "${{ inputs.release_tag }}"
+        } else {
+          $version = "v$(Get-Date -Format 'yyyy.MM.dd')-${{ github.run_number }}"
+        }
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -62,3 +85,37 @@ jobs:
         path: ./HsMod/Release/HsMod.dll
         retention-days: 30
         if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ inputs.create_release == true }}
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: HsMod-dll-${{ inputs.configuration || 'Release' }}
+        path: ./artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.build.outputs.version }}
+        name: HsMod ${{ needs.build.outputs.version }}
+        body: |
+          ## HsMod ${{ needs.build.outputs.version }}
+          
+          ### 构建信息
+          - 构建配置: ${{ inputs.configuration || 'Release' }}
+          - 构建时间: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
+          - 提交: ${{ github.sha }}
+          
+          ### 下载
+          下载下方的 `HsMod.dll` 文件即可使用。
+        files: ./artifacts/HsMod.dll
+        draft: false
+        prerelease: false
+        generate_release_notes: true
