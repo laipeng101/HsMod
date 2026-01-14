@@ -55,23 +55,31 @@ jobs:
 
     - name: Set variables
       id: vars
-      shell: bash
+      # 显式指定使用 PowerShell
+      shell: pwsh
       run: |
-        # 版本号
-        if [ -n "${{ inputs.release_tag }}" ]; then
-          version="${{ inputs.release_tag }}"
-        else
-          version=$(TZ='Asia/Shanghai' date '+%Y%m%d-%H%M%S')
-        fi
-        echo "version=$version" >> $GITHUB_OUTPUT
+        # 判断是否有手动输入的 tag
+        if ("${{ inputs.release_tag }}" -ne "") {
+          $version = "${{ inputs.release_tag }}"
+        } else {
+          # 获取当前时间并转换为中国标准时间 (China Standard Time)
+          $utcDate = Get-Date
+          $chinaZone = [TimeZoneInfo]::FindSystemTimeZoneById("China Standard Time")
+          $chinaDate = [TimeZoneInfo]::ConvertTime($utcDate, $chinaZone)
+          $version = $chinaDate.ToString("yyyyMMdd-HHmmss")
+        }
+        
+        # 输出到 GITHUB_OUTPUT (PowerShell 写法)
+        "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         
         # Artifact 名称
-        config="${{ inputs.configuration || 'Release' }}"
-        echo "artifact_name=HsMod-${config}-${version}" >> $GITHUB_OUTPUT
+        $config = "${{ inputs.configuration }}"
+        if ([string]::IsNullOrWhiteSpace($config)) { $config = "Release" }
+        "artifact_name=HsMod-$config-$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         
-        # 输出信息
-        echo "::notice::Version: $version"
-        echo "::notice::Configuration: $config"
+        # 输出日志信息
+        Write-Host "::notice::Version: $version"
+        Write-Host "::notice::Configuration: $config"
 
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
