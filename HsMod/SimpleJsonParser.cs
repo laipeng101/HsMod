@@ -44,21 +44,31 @@ namespace HsMod
                 // Parse key
                 string key = ParseString(json, ref i);
                 if (key == null)
-                    break;
+                    return null; // Parse error - fail fast
 
-                // Skip whitespace and colon
-                while (i < json.Length && (char.IsWhiteSpace(json[i]) || json[i] == ':'))
+                // Skip whitespace before colon
+                while (i < json.Length && char.IsWhiteSpace(json[i]))
+                    i++;
+
+                // Require colon delimiter
+                if (i >= json.Length || json[i] != ':')
+                    return null; // Missing or invalid delimiter - fail fast
+
+                i++; // Skip the colon
+
+                // Skip whitespace after colon
+                while (i < json.Length && char.IsWhiteSpace(json[i]))
                     i++;
 
                 if (i >= json.Length)
-                    break;
+                    return null; // Missing value - fail fast
 
                 // Parse value
                 string value = ParseValue(json, ref i);
-                if (value != null)
-                {
-                    result[key] = value;
-                }
+                if (value == null)
+                    return null; // Parse error - fail fast
+
+                result[key] = value;
             }
 
             return result;

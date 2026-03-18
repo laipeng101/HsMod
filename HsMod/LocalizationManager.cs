@@ -48,6 +48,11 @@ namespace HsMod
             {
                 CacheCurrentLangJson = GetLangFileContext(pluginInitLanague.Value);
                 CacheCurrentLangJsonObj = SimpleJsonParser.ParseJsonObject(CacheCurrentLangJson);
+                if (CacheCurrentLangJsonObj == null)
+                {
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Error, $"Failed to parse current language JSON file");
+                    CacheCurrentLangJsonObj = new Dictionary<string, string>();
+                }
             }
 
             string res;
@@ -62,6 +67,11 @@ namespace HsMod
                 {
                     CacheEnUSLangJson = GetLangFileContext("enUS");
                     CacheEnUSLangJsonObj = SimpleJsonParser.ParseJsonObject(CacheEnUSLangJson);
+                    if (CacheEnUSLangJsonObj == null)
+                    {
+                        Utils.MyLogger(BepInEx.Logging.LogLevel.Error, $"Failed to parse enUS language JSON file");
+                        CacheEnUSLangJsonObj = new Dictionary<string, string>();
+                    }
                 }
                 if (CacheEnUSLangJsonObj.TryGetValue(lang_key, out res))
                 {
@@ -78,6 +88,11 @@ namespace HsMod
             {
                 CacheCurrentLangJson = GetLangFileContext(pluginInitLanague.Value);
                 CacheCurrentLangJsonObj = SimpleJsonParser.ParseJsonObject(CacheCurrentLangJson);
+                if (CacheCurrentLangJsonObj == null)
+                {
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Error, $"Failed to parse current language JSON file");
+                    CacheCurrentLangJsonObj = new Dictionary<string, string>();
+                }
             }
 
             foreach (var key in CacheCurrentLangJsonObj)
@@ -94,6 +109,11 @@ namespace HsMod
             {
                 CacheEnUSLangJson = GetLangFileContext("enUS");
                 CacheEnUSLangJsonObj = SimpleJsonParser.ParseJsonObject(CacheEnUSLangJson);
+                if (CacheEnUSLangJsonObj == null)
+                {
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Error, $"Failed to parse enUS language JSON file");
+                    CacheEnUSLangJsonObj = new Dictionary<string, string>();
+                }
             }
 
             foreach (var key in CacheEnUSLangJsonObj)
