@@ -85,7 +85,7 @@ namespace HsMod
                         string requestBody = await reader.ReadToEndAsync();
                         Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"POST: {requestBody}");
                         // Parse JSON and get the "command" field
-                        var json = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(requestBody);
+                        var json = SimpleJsonParser.ParseJsonObject(requestBody);
 
                         if (json != null && json.TryGetValue("command", out string command))
                         {
@@ -126,7 +126,7 @@ namespace HsMod
                         string requestBody = await reader.ReadToEndAsync();
                         Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"POST: {requestBody}");
                         // Parse JSON and get the "key" field
-                        var json = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(requestBody);
+                        var json = SimpleJsonParser.ParseJsonObject(requestBody);
 
                         if (json != null && json.TryGetValue("key", out string key) && json.TryGetValue("value", out string value))
                         {
@@ -186,7 +186,7 @@ namespace HsMod
                         string requestBody = await reader.ReadToEndAsync();
                         Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"POST: {requestBody}");
                         // Parse JSON and get the "key" field
-                        var json = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(requestBody);
+                        var json = SimpleJsonParser.ParseJsonObject(requestBody);
 
                         if (json != null && json.TryGetValue("key", out string key) && json.TryGetValue("value", out string value))
                         {

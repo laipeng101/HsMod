@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using static HsMod.PluginConfig;
 
@@ -48,7 +47,7 @@ namespace HsMod
             if (String.IsNullOrEmpty(CacheCurrentLangJson))
             {
                 CacheCurrentLangJson = GetLangFileContext(pluginInitLanague.Value);
-                CacheCurrentLangJsonObj = JsonConvert.DeserializeObject<Dictionary<string, string>>(CacheCurrentLangJson);
+                CacheCurrentLangJsonObj = SimpleJsonParser.ParseJsonObject(CacheCurrentLangJson);
             }
 
             string res;
@@ -62,7 +61,7 @@ namespace HsMod
                 if (String.IsNullOrEmpty(CacheEnUSLangJson))
                 {
                     CacheEnUSLangJson = GetLangFileContext("enUS");
-                    CacheEnUSLangJsonObj = JsonConvert.DeserializeObject<Dictionary<string, string>>(CacheEnUSLangJson);
+                    CacheEnUSLangJsonObj = SimpleJsonParser.ParseJsonObject(CacheEnUSLangJson);
                 }
                 if (CacheEnUSLangJsonObj.TryGetValue(lang_key, out res))
                 {
@@ -78,7 +77,7 @@ namespace HsMod
             if (String.IsNullOrEmpty(CacheCurrentLangJson))
             {
                 CacheCurrentLangJson = GetLangFileContext(pluginInitLanague.Value);
-                CacheCurrentLangJsonObj = JsonConvert.DeserializeObject<Dictionary<string, string>>(CacheCurrentLangJson);
+                CacheCurrentLangJsonObj = SimpleJsonParser.ParseJsonObject(CacheCurrentLangJson);
             }
 
             foreach (var key in CacheCurrentLangJsonObj)
@@ -94,7 +93,7 @@ namespace HsMod
             if (String.IsNullOrEmpty(CacheEnUSLangJson))
             {
                 CacheEnUSLangJson = GetLangFileContext("enUS");
-                CacheEnUSLangJsonObj = JsonConvert.DeserializeObject<Dictionary<string, string>>(CacheEnUSLangJson);
+                CacheEnUSLangJsonObj = SimpleJsonParser.ParseJsonObject(CacheEnUSLangJson);
             }
 
             foreach (var key in CacheEnUSLangJsonObj)

@@ -175,9 +175,6 @@
     <Reference Include="netstandard">
       <HintPath>UnstrippedCorlibUinx\netstandard.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>LibHearthstone\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="PlayMaker">
       <HintPath>LibHearthstone\PlayMaker.dll</HintPath>
     </Reference>
@@ -400,6 +397,7 @@
     <Compile Include="Main.cs" />
     <Compile Include="PluginInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimpleJsonParser.cs" />
     <Compile Include="UtilsSkins.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="UtilsArgu.cs" />
