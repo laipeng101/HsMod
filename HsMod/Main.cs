@@ -64,6 +64,29 @@ namespace HsMod
         }
         private void Awake()
         {
+            // 检测 Newtonsoft.Json 版本冲突并提供修复建议
+            try
+            {
+                var newtonsoftAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(a => a.GetName().Name == "Newtonsoft.Json")
+                    .ToList();
+                    
+                if (newtonsoftAssemblies.Count > 0)
+                {
+                    var loaded = newtonsoftAssemblies.First();
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"Newtonsoft.Json loaded from: {loaded.Location}");
+                    
+                    // 检查是否从 unstripped_corlib 加载 (可能导致冲突)
+                    if (loaded.Location.Contains("unstripped_corlib"))
+                    {
+                        Utils.MyLogger(BepInEx.Logging.LogLevel.Warning, 
+                            "Newtonsoft.Json loaded from unstripped_corlib - may conflict with UniSDK. " +
+                            "Try removing Newtonsoft.Json.dll from BepInEx/unstripped_corlib folder.");
+                    }
+                }
+            }
+            catch { }
+
             // enable logging bepinex and unity to disk without append
             try
             {
