@@ -91,7 +91,7 @@ jobs:
 
     - name: Build HsMod
       run: |
-        dotnet build --configuration ${{ inputs.configuration || 'Release' }} --no-restore /p:Version=${{ steps.vars.outputs.version }}
+        dotnet build HsMod/HsMod.csproj --configuration ${{ inputs.configuration || 'Release' }} --no-restore /p:Version=${{ steps.vars.outputs.version }}
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
