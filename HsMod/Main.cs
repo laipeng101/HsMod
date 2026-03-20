@@ -15,6 +15,33 @@ namespace HsMod
         static Plugin()
         {
             AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
+            // 预加载 Newtonsoft.Json 从 Managed 目录
+            PreloadNewtonsoftJson();
+        }
+
+        private static void PreloadNewtonsoftJson()
+        {
+            try
+            {
+                var gameDir = System.IO.Path.GetDirectoryName(typeof(Hearthstone.HearthstoneApplication).Assembly.Location);
+                var hearthstoneDataDir = System.IO.Directory.GetParent(gameDir).FullName; // Hearthstone_Data
+                var managedPath = System.IO.Path.Combine(hearthstoneDataDir, "Managed", "Newtonsoft.Json.dll");
+                
+                if (System.IO.File.Exists(managedPath))
+                {
+                    // 检查是否已经加载
+                    foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        if (asm.GetName().Name == "Newtonsoft.Json")
+                        {
+                            return; // 已经加载
+                        }
+                    }
+                    // 预加载
+                    System.Reflection.Assembly.LoadFrom(managedPath);
+                }
+            }
+            catch { }
         }
 
         private static Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
