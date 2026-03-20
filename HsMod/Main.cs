@@ -64,28 +64,59 @@ namespace HsMod
         }
         private void Awake()
         {
-            // 检测 Newtonsoft.Json 版本冲突并提供修复建议
+            // 详细诊断 Newtonsoft.Json 加载情况
             try
             {
-                var newtonsoftAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+                var gameDir = System.IO.Path.GetDirectoryName(typeof(Hearthstone.HearthstoneApplication).Assembly.Location);
+                var managedDir = System.IO.Path.Combine(gameDir, "Hearthstone_Data", "Managed");
+                var unstrippedDir = System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "unstripped_corlib");
+                
+                Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"=== Newtonsoft.Json Diagnostics ===");
+                Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"Game directory: {gameDir}");
+                Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"Managed directory: {managedDir}");
+                Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"Unstripped directory: {unstrippedDir}");
+                
+                // 检查文件是否存在
+                var managedNewtonsoft = System.IO.Path.Combine(managedDir, "Newtonsoft.Json.dll");
+                var unstrippedNewtonsoft = System.IO.Path.Combine(unstrippedDir, "Newtonsoft.Json.dll");
+                
+                if (System.IO.File.Exists(managedNewtonsoft))
+                {
+                    var version = System.Reflection.AssemblyName.GetAssemblyName(managedNewtonsoft).Version;
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"Managed Newtonsoft.Json: v{version} at {managedNewtonsoft}");
+                }
+                else
+                {
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Warning, "Newtonsoft.Json.dll NOT found in Managed directory");
+                }
+                
+                if (System.IO.File.Exists(unstrippedNewtonsoft))
+                {
+                    var version = System.Reflection.AssemblyName.GetAssemblyName(unstrippedNewtonsoft).Version;
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Warning, $"Unstripped Newtonsoft.Json: v{version} at {unstrippedNewtonsoft} (MAY CAUSE CONFLICT)");
+                }
+                else
+                {
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, "No Newtonsoft.Json.dll in unstripped_corlib (good)");
+                }
+                
+                // 检查已加载的程序集
+                var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
                     .Where(a => a.GetName().Name == "Newtonsoft.Json")
                     .ToList();
                     
-                if (newtonsoftAssemblies.Count > 0)
+                Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"Loaded Newtonsoft.Json assemblies: {loadedAssemblies.Count}");
+                foreach (var asm in loadedAssemblies)
                 {
-                    var loaded = newtonsoftAssemblies.First();
-                    Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"Newtonsoft.Json loaded from: {loaded.Location}");
-                    
-                    // 检查是否从 unstripped_corlib 加载 (可能导致冲突)
-                    if (loaded.Location.Contains("unstripped_corlib"))
-                    {
-                        Utils.MyLogger(BepInEx.Logging.LogLevel.Warning, 
-                            "Newtonsoft.Json loaded from unstripped_corlib - may conflict with UniSDK. " +
-                            "Try removing Newtonsoft.Json.dll from BepInEx/unstripped_corlib folder.");
-                    }
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"  - v{asm.GetName().Version} from: {asm.Location}");
                 }
+                
+                Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"=== End Diagnostics ===");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Utils.MyLogger(BepInEx.Logging.LogLevel.Error, $"Diagnostics failed: {ex.Message}");
+            }
 
             // enable logging bepinex and unity to disk without append
             try
