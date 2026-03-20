@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using System;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using static HsMod.PluginConfig;
 
@@ -10,6 +11,49 @@ namespace HsMod
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
+        // 静态构造函数 - 在类型最早加载时执行
+        static Plugin()
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
+        }
+
+        private static Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            var assemblyName = new AssemblyName(args.Name);
+            
+            // 处理 Newtonsoft.Json 版本冲突 (网易 UniSDK 兼容性问题)
+            if (assemblyName.Name == "Newtonsoft.Json")
+            {
+                try
+                {
+                    // 优先返回已加载的 Newtonsoft.Json
+                    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        if (assembly.GetName().Name == "Newtonsoft.Json")
+                        {
+                            return assembly;
+                        }
+                    }
+
+                    // 尝试从游戏 Managed 目录加载
+                    var gameDir = System.IO.Path.GetDirectoryName(typeof(Hearthstone.HearthstoneApplication).Assembly.Location);
+                    var managedPath = System.IO.Path.Combine(gameDir, "Hearthstone_Data", "Managed", "Newtonsoft.Json.dll");
+                    
+                    if (System.IO.File.Exists(managedPath))
+                    {
+                        Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"AssemblyResolve: Loading Newtonsoft.Json from {managedPath}");
+                        return Assembly.LoadFrom(managedPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Warning, $"AssemblyResolve Newtonsoft.Json failed: {ex.Message}");
+                }
+            }
+
+            return null;
+        }
+
         private void OnGUI()
         {
             if (UtilsArgu.Instance.Exists("hsunitid"))

@@ -215,8 +215,8 @@ namespace HsMod
             LoadPatch(typeof(Patcher.PatchFavorite));
             LoadPatch(typeof(Patcher.PatchFakeDevice));
             LoadPatch(typeof(Patcher.PatchDevOptioins));
-            // 网易 UniSDK WebView 兼容性补丁 (修复 Newtonsoft.Json 版本冲突)
-            LoadPatch(typeof(UniSDKWebViewPatch));
+            // 网易 UniSDK WebView 兼容性补丁 (预加载正确的 Newtonsoft.Json)
+            UniSDKWebViewPatch.InitPatch();
             if (isShowCardLargeCount.Value)
             {
                 LoadPatch(typeof(Patcher.PatchRealtimeCardNum));
@@ -3800,14 +3800,39 @@ namespace HsMod
     //网易 UniSDK WebView 兼容性补丁 (修复 Newtonsoft.Json 版本冲突导致的 TypeLoadException)
     public static class UniSDKWebViewPatch
     {
-        [HarmonyPrefix]
-        [HarmonyPatch("NetEase.UniSDK.NgWebView.UniSdkU3dWinPlayer", "setWebViewConfig")]
-        public static bool PrefixSetWebViewConfig(ref object __result)
+        private static System.Reflection.Assembly correctNewtonsoftAssembly = null;
+
+        public static void InitPatch()
         {
-            Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, "UniSDK WebView setWebViewConfig intercepted - Newtonsoft.Json compatibility fix");
-            // 跳过原始方法，避免 JObject 类型加载失败
-            __result = null;
-            return false;
+            try
+            {
+                // 预加载游戏目录中的 Newtonsoft.Json，避免后续加载冲突
+                var gameDir = System.IO.Path.GetDirectoryName(typeof(Hearthstone.HearthstoneApplication).Assembly.Location);
+                var newtonsoftPath = System.IO.Path.Combine(gameDir, "Hearthstone_Data", "Managed", "Newtonsoft.Json.dll");
+                
+                if (System.IO.File.Exists(newtonsoftPath))
+                {
+                    // 检查是否已加载相同版本
+                    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        if (assembly.GetName().Name == "Newtonsoft.Json")
+                        {
+                            if (assembly.Location == newtonsoftPath)
+                            {
+                                correctNewtonsoftAssembly = assembly;
+                                Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, "UniSDK WebView Patch: Correct Newtonsoft.Json already loaded");
+                                return;
+                            }
+                        }
+                    }
+                    
+                    Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"UniSDK WebView Patch: Loading Newtonsoft.Json from {newtonsoftPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.MyLogger(BepInEx.Logging.LogLevel.Warning, $"UniSDK WebView Patch init warning: {ex.Message}");
+            }
         }
     }
 
