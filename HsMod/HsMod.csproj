@@ -280,6 +280,9 @@
     <Reference Include="Unity.SharpZipLib">
       <HintPath>LibHearthstone\Unity.SharpZipLib.dll</HintPath>
     </Reference>
+    <Reference Include="UniSDK.NgWebView.Runtime">
+      <HintPath>LibHearthstone\UniSDK.NgWebView.Runtime.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Timeline">
       <HintPath>LibHearthstone\Unity.Timeline.dll</HintPath>
     </Reference>

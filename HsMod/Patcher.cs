@@ -215,6 +215,8 @@ namespace HsMod
             LoadPatch(typeof(Patcher.PatchFavorite));
             LoadPatch(typeof(Patcher.PatchFakeDevice));
             LoadPatch(typeof(Patcher.PatchDevOptioins));
+            // 网易 UniSDK WebView 兼容性补丁 (修复 Newtonsoft.Json 版本冲突)
+            LoadPatch(typeof(UniSDKWebViewPatch));
             if (isShowCardLargeCount.Value)
             {
                 LoadPatch(typeof(Patcher.PatchRealtimeCardNum));
@@ -3792,6 +3794,20 @@ namespace HsMod
         public static void UpdatePacks(this PackOpening __instance)
         {
             updatePacks?.Invoke(__instance, null);
+        }
+    }
+
+    //网易 UniSDK WebView 兼容性补丁 (修复 Newtonsoft.Json 版本冲突导致的 TypeLoadException)
+    public static class UniSDKWebViewPatch
+    {
+        [HarmonyPrefix]
+        [HarmonyPatch("NetEase.UniSDK.NgWebView.UniSdkU3dWinPlayer", "setWebViewConfig")]
+        public static bool PrefixSetWebViewConfig(ref object __result)
+        {
+            Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, "UniSDK WebView setWebViewConfig intercepted - Newtonsoft.Json compatibility fix");
+            // 跳过原始方法，避免 JObject 类型加载失败
+            __result = null;
+            return false;
         }
     }
 
