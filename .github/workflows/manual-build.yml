@@ -1,0 +1,185 @@
+# .github/workflows/manual-build.yml
+
+name: Manual Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: '构建配置'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+      create_release:
+        description: '是否创建 Release'
+        required: true
+        default: false
+        type: boolean
+      release_tag:
+        description: 'Release 标签 (留空则自动使用日期时间)'
+        required: false
+        type: string
+      prerelease:
+        description: '标记为预发布版本'
+        required: false
+        default: false
+        type: boolean
+      pr_number:
+        description: 'PR 编号 (可选，仅输入数字，如 12)'
+        required: false
+        type: string
+
+# 防止并发运行，取消之前的运行 (加入了 PR 编号以区分不同的 PR 构建)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.pr_number || 'default' }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '8.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.vars.outputs.version }}
+      artifact_name: ${{ steps.vars.outputs.artifact_name }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        # 如果输入了 PR 编号，则拉取该 PR 的合并节点；否则拉取当前触发分支
+        ref: ${{ inputs.pr_number != '' && format('refs/pull/{0}/merge', inputs.pr_number) || github.ref }}
+
+    - name: Set variables
+      id: vars
+      # 显式指定使用 PowerShell
+      shell: pwsh
+      run: |
+        # 判断是否有手动输入的 tag
+        if ("${{ inputs.release_tag }}" -ne "") {
+          $version = "${{ inputs.release_tag }}"
+        } else {
+          # 获取当前时间并转换为中国标准时间 (China Standard Time)
+          $utcDate = Get-Date
+          $chinaZone = [TimeZoneInfo]::FindSystemTimeZoneById("China Standard Time")
+          $chinaDate = [TimeZoneInfo]::ConvertTime($utcDate, $chinaZone)
+          $version = $chinaDate.ToString("yyyyMMdd-HHmmss")
+        }
+        
+        # 如果是 PR 构建，可以在版本号或日志中做个标记 (这里仅输出日志方便查阅)
+        if ("${{ inputs.pr_number }}" -ne "") {
+          Write-Host "::notice::Building PR #${{ inputs.pr_number }}"
+        }
+        
+        # 输出到 GITHUB_OUTPUT (PowerShell 写法)
+        "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        
+        # Artifact 名称
+        $config = "${{ inputs.configuration }}"
+        if ([string]::IsNullOrWhiteSpace($config)) { $config = "Release" }
+        
+        # 如果是 PR，在 Artifact 名字里加上 PR 号，方便下载时区分
+        if ("${{ inputs.pr_number }}" -ne "") {
+          "artifact_name=HsMod-$config-PR${{ inputs.pr_number }}-$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        } else {
+          "artifact_name=HsMod-$config-$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        }
+        
+        # 输出日志信息
+        Write-Host "::notice::Version: $version"
+        Write-Host "::notice::Configuration: $config"
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build HsMod
+      run: |
+        dotnet build --configuration ${{ inputs.configuration || 'Release' }} --no-restore /p:Version=${{ steps.vars.outputs.version }}
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.vars.outputs.artifact_name }}
+        path: ./HsMod/Release/HsMod.dll
+        retention-days: 30
+        if-no-files-found: error
+        compression-level: 9
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ inputs.create_release == true }}
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        # Release 阶段也需要保持一致的 ref，确保读取到的是对应 PR 的 README 和 CHANGELOG
+        ref: ${{ inputs.pr_number != '' && format('refs/pull/{0}/merge', inputs.pr_number) || github.ref }}
+        sparse-checkout: |
+          CHANGELOG.md
+          README.md
+        sparse-checkout-cone-mode: false
+
+    - name: Download Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ needs.build.outputs.artifact_name }}
+        path: ./artifacts
+
+    - name: Prepare release files
+      run: |
+        cd artifacts
+        # 计算校验和
+        sha256sum HsMod.dll > SHA256SUMS.txt
+        echo "SHA256 Checksum:"
+        cat SHA256SUMS.txt
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.build.outputs.version }}
+        name: HsMod ${{ needs.build.outputs.version }}
+        body: |
+          ## HsMod ${{ needs.build.outputs.version }}
+          
+          ### 📦 构建信息
+          | 项目 | 值 |
+          |------|-----|
+          | 构建配置 | `${{ inputs.configuration || 'Release' }}` |
+          | .NET 版本 | `${{ env.DOTNET_VERSION }}` |
+          | 提交/来源 | ${{ inputs.pr_number != '' && format('PR #{0}', inputs.pr_number) || format('[`{0}`](https://github.com/{1}/commit/{0})', github.sha, github.repository) }} |
+          | 构建时间 | ${{ needs.build.outputs.version }} |
+          | 触发者 | @${{ github.actor }} |
+          
+          ### 📥 下载
+          下载 `HsMod.dll` 文件，校验和见 `SHA256SUMS.txt`。
+          
+          ### ⚠️ 注意事项
+          - 请确保游戏版本与 Mod 版本兼容
+          - 建议备份原文件后再替换
+        files: |
+          ./artifacts/HsMod.dll
+          ./artifacts/SHA256SUMS.txt
+        draft: false
+        prerelease: ${{ inputs.prerelease }}
+        generate_release_notes: true
+        fail_on_unmatched_files: true
+        make_latest: ${{ inputs.prerelease == false }}
