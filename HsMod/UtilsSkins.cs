@@ -37,7 +37,7 @@ namespace HsMod
                     
                     var controllerSide = GameState.Get()?.GetPlayer(___m_entity.GetControllerId())?.GetSide() ?? Player.Side.NEUTRAL;
                     bool isControlledByOpposingSidePlayer = controllerSide == Player.Side.OPPOSING;
-                    bool isControlledByFriendlySidePlayer = controllerSide == Player.Side.OPPOSING;
+                    bool isControlledByFriendlySidePlayer = controllerSide == Player.Side.FRIENDLY;
 
                     //屏蔽对手特效
                     if (isControlledByOpposingSidePlayer && (!isOpponentGoldenCardShow.Value) && (!GameMgr.Get().IsBattlegrounds()))
